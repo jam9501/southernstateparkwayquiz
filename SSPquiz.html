@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accident Quiz: Southern State Parkway</title>
+  <!-- Link to Google Fonts for Lora -->
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Lora', serif;
+      background-color: #f8f9fc;
+      color: #333;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .quiz-container {
+      margin-bottom: 30px;
+    }
+
+    .question {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 20px 0;
+      color: #333;
+    }
+
+    input[type="number"] {
+      font-size: 18px;
+      padding: 8px 12px;
+      width: 100px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      transition: border 0.3s ease;
+    }
+
+    input[type="number"]:focus {
+      border-color: #4e73df;
+      outline: none;
+    }
+
+    button {
+      font-size: 16px;
+      padding: 12px 25px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      background-color: #004085;
+      transform: translateY(2px);
+    }
+
+    button:focus {
+      outline: none;
+    }
+
+    #chart {
+      margin-top: 40px;
+      height: 400px;
+    }
+
+    .answer {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 30px;
+      color: #333;
+    }
+
+    .result-text {
+      font-size: 20px;
+      margin-top: 20px;
+      color: #007bff;
+      font-weight: 700;
+    }
+
+    .bar {
+      fill: #007bff;
+      width: 60px;
+    }
+
+    .bar-text {
+      font-size: 16px;
+      fill: white;
+      text-anchor: middle;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="quiz-container">
+    <div class="question">Did the number of accidents on the Southern State Parkway increase from 2019 to 2024?</div>
+    <button id="increaseYes">Yes</button>
+    <button id="increaseNo">No</button>
+  </div>
+
+  <div class="quiz-container">
+    <div class="question">How many accidents do you think have already occurred in 2025?</div>
+    <input type="number" id="userGuess" placeholder="Your guess">
+    <button id="submitGuess">Submit Guess</button>
+  </div>
+
+  <div id="chart"></div>
+
+  <div class="answer" id="answer"></div>
+  <div class="result-text" id="resultText"></div>
+
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script>
+    // Data for accidents on Southern State Parkway (Sample Data for Demonstration)
+    const accidentsData = {
+      2019: 3127, 
+      2020: 2331,
+      2021: 2782,
+      2022: 2716,
+      2023: 2725,
+      2024: 2549,
+      2025: 328  // Pre-determined accident number for 2025
+    };
+
+    let increaseAnswer = '';
+    let userGuess = 0;
+    let chartData = [];
+    let correctAnswer = 0;
+
+    // Handle the increase in accidents question
+    document.getElementById('increaseYes').addEventListener('click', function() {
+      increaseAnswer = 'Yes';
+      proceedToGuess();
+    });
+
+    document.getElementById('increaseNo').addEventListener('click', function() {
+      increaseAnswer = 'No';
+      proceedToGuess();
+    });
+
+    // Handle the guess input for 2025 accidents
+    document.getElementById('submitGuess').addEventListener('click', function() {
+      userGuess = parseInt(document.getElementById('userGuess').value);
+      if (!isNaN(userGuess)) {
+        animateChart();
+      }
+    });
+
+    function proceedToGuess() {
+      // Enable the guess input
+      document.querySelector('.quiz-container:nth-child(2)').style.display = 'block';
+    }
+
+    // Animate the bar chart for total accidents
+    function animateChart() {
+      // Calculate if the number of accidents increased from 2019 to 2024
+      const increase = accidentsData[2024] > accidentsData[2019];
+
+      // Set correct answer based on increase
+      const increaseCorrect = (increase && increaseAnswer === 'Yes') || (!increase && increaseAnswer === 'No');
+
+      // Set the correct number of accidents for 2025
+      correctAnswer = accidentsData[2025];
+
+      // Prepare data for the chart animation (accumulating accidents)
+      let currentYear = 2019;
+      chartData = [];
+
+      for (let year = 2019; year <= 2025; year++) {
+        chartData.push(accidentsData[year]);
+      }
+
+      // Draw the chart using D3.js
+      const width = 600;
+      const height = 400;
+      const margin = { top: 20, right: 30, bottom: 40, left: 40 };
+      const svg = d3.select('#chart').append('svg')
+        .attr('width', width)
+        .attr('height', height);
+
+      const x = d3.scaleBand().range([margin.left, width - margin.right]).domain([2019, 2020, 2021, 2022, 2023, 2024, 2025]).padding(0.1);
+      const y = d3.scaleLinear().range([height - margin.bottom, margin.top]).domain([0, d3.max(chartData)]);
+
+      svg.selectAll('.bar')
+        .data(chartData)
+        .enter().append('rect')
+        .attr('class', 'bar')
+        .attr('x', (d, i) => x(2019 + i))
+        .attr('y', height - margin.bottom)
+        .attr('width', x.bandwidth())
+        .attr('height', 0)
+        .attr('fill', '#007bff')
+        .transition()
+        .duration(1500)
+        .attr('y', (d) => y(d))
+        .attr('height', (d) => height - margin.bottom - y(d))
+        .delay((d, i) => i * 300);
+
+      // Add text to the bars (number of accidents)
+      svg.selectAll('.bar-text')
+        .data(chartData)
+        .enter().append('text')
+        .attr('class', 'bar-text')
+        .attr('x', (d, i) => x(2019 + i) + x.bandwidth() / 2)
+        .attr('y', height - margin.bottom)
+        .attr('dy', -10)
+        .attr('text-anchor', 'middle')
+        .text('')
+        .transition()
+        .duration(1500)
+        .text((d) => d)
+        .delay((d, i) => i * 300);
+
+      // After chart animation is complete
+      setTimeout(() => {
+        // Final reveal: Feedback on the guesses
+        const guessDifference = userGuess - correctAnswer;
+        let resultMessage = `You guessed ${userGuess}. `;
+        if (guessDifference === 0) {
+          resultMessage += "You guessed correctly!";
+        } else if (guessDifference > 0) {
+          resultMessage += `You guessed ${guessDifference} more accidents than the actual amount.`;
+        } else {
+          resultMessage += `You guessed ${Math.abs(guessDifference)} less accidents than the actual amount.`;
+        }
+        document.getElementById('resultText').innerText = resultMessage;
+      }, 2000);
+    }
+
+    // Hide the second quiz container initially
+    document.querySelector('.quiz-container:nth-child(2)').style.display = 'none';
+  </script>
+</body>
+</html>
